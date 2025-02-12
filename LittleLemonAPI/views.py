@@ -4,14 +4,37 @@ from rest_framework.response import Response
 from rest_framework import status 
 from rest_framework.decorators import api_view 
 from .serializers import MenuItemSerializer, CategorySerializer
+from urllib.parse import unquote
+# from django.db.models import Q
+
 
 
 # Create your views here.
 @api_view(["GET", "POST"])
 def menu_items(request):
 	if request.method == "GET":
-		items = get_list_or_404(MenuItem)
-		# items = MenuItem.objects.select_related('category').all()
+		# items = get_list_or_404(MenuItem)
+		items = MenuItem.objects.select_related('category').all()
+
+		category_name = request.query_params.get("category")
+		to_price = request.query_params.get("to_price")
+		menu_item = request.query_params.get("menu_item")
+
+		if category_name:
+			items = items.filter(category__slug__iexact=category_name)
+
+		if menu_item:
+			items = items.filter(title__iexact=menu_item)
+
+		if to_price:
+			items = items.filter(price__lte=to_price)
+
+		# Another way to implement category filtering
+		# category_name = request.GET.get("category") if request.GET.get("category") != None else ""
+
+		# items = MenuItem.objects.filter(
+        # Q(category__title__icontains=category_name))
+
 		serialized_item = MenuItemSerializer(items, many=True)
 		return Response(serialized_item.data)
 
